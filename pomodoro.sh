@@ -120,7 +120,13 @@ cmd_start() {
 
 # ── Helper: Save deadline ──
 save_deadline() {
-    echo "DEADLINE=$1" >> "$STATE_FILE"
+    local deadline="$1"
+    local temp_file="${STATE_FILE}.tmp"
+    
+    # Remove old DEADLINE line and add new one
+    grep -v "^DEADLINE=" "$STATE_FILE" > "$temp_file" 2>/dev/null
+    echo "DEADLINE=$deadline" >> "$temp_file"
+    mv "$temp_file" "$STATE_FILE"
 }
 
 # ── Command: Pause ──
@@ -131,7 +137,7 @@ cmd_pause() {
         RUNNING="false"
         # Recalculate remaining time from deadline
         local deadline
-        deadline=$(grep "^DEADLINE=" "$STATE_FILE" 2>/dev/null | cut -d= -f2)
+        deadline=$(grep "^DEADLINE=" "$STATE_FILE" 2>/dev/null | head -1 | cut -d= -f2)
         if [[ -n "$deadline" ]]; then
             REMAINING=$(( deadline - $(date +%s) ))
             if [[ $REMAINING -lt 0 ]]; then
@@ -166,7 +172,7 @@ cmd_status() {
     # Check if timer expired and advance phase
     if [[ "$RUNNING" == "true" && "$PHASE" != "idle" ]]; then
         local deadline
-        deadline=$(grep "^DEADLINE=" "$STATE_FILE" 2>/dev/null | cut -d= -f2)
+        deadline=$(grep "^DEADLINE=" "$STATE_FILE" 2>/dev/null | head -1 | cut -d= -f2)
 
         if [[ -n "$deadline" ]]; then
             local now
